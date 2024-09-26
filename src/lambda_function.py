@@ -3,6 +3,7 @@ import json
 import boto3
 import subprocess
 import time
+import requests 
 
 
 s3_client = boto3.client('s3')
@@ -35,12 +36,19 @@ def lambda_handler(event, context):
         generate_thumbnail(download_path, thumbnail_output_path)
 
         # Upload results back to S3
-        s3_client.upload_file(compressed_output_path, bucket, f'{exerciseId}/video.mp4')
-        s3_client.upload_file(thumbnail_output_path, bucket, f'{exerciseId}/thumbnail.png')
+        s3_client.upload_file(compressed_output_path, bucket, f'exercises/{exerciseId}/video.mp4')
+        s3_client.upload_file(thumbnail_output_path, bucket, f'exercises/{exerciseId}/thumbnail.png')
 
         print(f"Files uploaded successfully to s3")
 
-        # TODO: CALL EC2 API HERE TO UPDATE THE DATABASE
+        api_url = f"http://13.238.134.99/api/v1/exercise/processed/{exerciseId}"
+
+        try:
+            response = requests.put(api_url)  # Send a PUT request
+            response.raise_for_status()  # Raise an error for bad responses
+            print(f"API call successful: {response.status_code}, {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error calling API: {e}")
 
     return {
         'statusCode': 200,
