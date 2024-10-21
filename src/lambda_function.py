@@ -10,7 +10,7 @@ s3_client = boto3.client('s3')
 FFMPEG_PATH = "/opt/bin/ffmpeg"  # Path to FFmpeg binary in Lambda Layer
 
 # Initialize the S3 client
-s3_client = boto3.client('s3')
+s3_client = boto3.client('s3', region_name='ap-southeast-2')
 
 def lambda_handler(event, context):
     bucket = os.environ.get('VIDEO_BUCKET')  
@@ -20,10 +20,10 @@ def lambda_handler(event, context):
         message_body = json.loads(record['body'])
         exerciseId = message_body.get('exerciseId')
         video_path = message_body.get('videoPath')
+        key = message_body.get('key')
         
-        # Extract the S3 object key from the video path
-        key = video_path.split('/')[-1]
-        download_path = f'/tmp/{key}'
+        trimmedKey = key.split('/')[-1]
+        download_path = f'/tmp/{trimmedKey}'
         timestamp = int(time.time())
         compressed_output_path = f'/tmp/compressed_video_{timestamp}.mp4'
         thumbnail_output_path = f'/tmp/thumbnail_{timestamp}.png'
@@ -41,7 +41,7 @@ def lambda_handler(event, context):
 
         print(f"Files uploaded successfully to s3")
 
-        api_url = f"http://13.238.134.99/api/v1/exercise/processed/{exerciseId}"
+        api_url = f"https://api.trainerjoe.ai/api/v1/exercise/processed/{exerciseId}"
 
         try:
             response = requests.put(api_url)  # Send a PUT request
