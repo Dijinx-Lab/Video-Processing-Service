@@ -21,11 +21,13 @@ def lambda_handler(event, context):
         exerciseId = message_body.get('exerciseId')
         video_path = message_body.get('videoPath')
         key = message_body.get('key')
+        trimmed_key = key.split('/')[-1]
+        file_extension = os.path.splitext(trimmed_key)[-1]
         
         trimmedKey = key.split('/')[-1]
         download_path = f'/tmp/{trimmedKey}'
         timestamp = int(time.time())
-        compressed_output_path = f'/tmp/compressed_video_{timestamp}.mp4'
+        compressed_output_path = f'/tmp/compressed_video_{timestamp}{file_extension}'
         thumbnail_output_path = f'/tmp/thumbnail_{timestamp}.png'
 
         # Download video from S3
@@ -36,7 +38,7 @@ def lambda_handler(event, context):
         generate_thumbnail(download_path, thumbnail_output_path)
 
         # Upload results back to S3
-        s3_client.upload_file(compressed_output_path, bucket, f'exercises/{exerciseId}/video.mp4')
+        s3_client.upload_file(compressed_output_path, bucket, f'exercises/{exerciseId}/video{file_extension}')
         s3_client.upload_file(thumbnail_output_path, bucket, f'exercises/{exerciseId}/thumbnail.png')
 
         print(f"Files uploaded successfully to s3")
@@ -59,10 +61,9 @@ def lossless_compress_video(video_path, output_path, crf=23):
     command = [
         'ffmpeg',
         '-i', video_path,
-        '-c:v', 'libx264',
         '-crf', str(crf),  
         '-preset', 'veryslow',
-        '-c:a', 'copy',  
+        '-c:a', 'copy',
         output_path
     ]
 
